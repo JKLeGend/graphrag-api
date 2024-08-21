@@ -109,6 +109,26 @@ async def indexing_status(resume: str):
         "logs": logs
     }
 
+@app.post("/v1/chat/completions")
+async def chat_completions(request: ChatCompletionRequest):
+    return await query(request)
+
+@app.get("/v1/models")
+async def list_models():
+    logger.info("[api]/v1/models")
+    current_time = int(time.time())
+    models = [
+        {"id": "graphrag-local-search:latest", "object": "model", "created": current_time - 100000, "owned_by": "graphrag"},
+        {"id": "graphrag-global-search:latest", "object": "model", "created": current_time - 95000, "owned_by": "graphrag"},
+    ]
+
+    response = {
+        "object": "list",
+        "data": models
+    }
+    return JSONResponse(content=response)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Launch the GraphRAG API server")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Host to bind the server to")
