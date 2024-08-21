@@ -21,7 +21,6 @@ from graphrag.index.progress import (
     ProgressReporter,
 )
 from graphrag.index.run import run_pipeline_with_config
-from graphrag.index.validate_config import validate_config_names
 from graphrag.index.emit import TableEmitterType
 from graphrag.index.cli import _create_default_config, _read_config_parameters, _get_progress_reporter, _enable_logging
 

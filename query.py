@@ -11,7 +11,6 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Union
-from contextlib import asynccontextmanager
 from pathlib import Path
 
 # GraphRAG 相关导入
@@ -33,9 +32,6 @@ from graphrag.query.structured_search.local_search.search import LocalSearch
 from graphrag.query.structured_search.global_search.community_context import GlobalCommunityContext
 from graphrag.query.structured_search.global_search.search import GlobalSearch
 from graphrag.vector_stores.lancedb import LanceDBVectorStore
-from graphrag.config import (
-    create_graphrag_config,
-)
 
 # 设置日志
 logger = logging.getLogger(__name__)
@@ -85,54 +81,17 @@ class Usage(BaseModel):
 class ChatCompletionResponse(BaseModel):
     id: str = Field(default_factory=lambda: f"chatcmpl-{uuid.uuid4().hex}")
     object: str = "chat.completion"
-    created: int = Field(default_factory=lambda: int(time.time()))
+    created: int = Field(default_factory=lambda: time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time()))))
     model: str
     choices: List[ChatCompletionResponseChoice]
     usage: Usage
     system_fingerprint: Optional[str] = None
 
-def _read_config_parameters(root: str, config: str | None):
-    _root = Path(root)
-    settings_yaml = (
-        Path(config)
-        if config and Path(config).suffix in [".yaml", ".yml"]
-        else _root / "settings.yaml"
-    )
-    if not settings_yaml.exists():
-        settings_yaml = _root / "settings.yml"
-
-    if settings_yaml.exists():
-        logger.info(f"Reading settings from {settings_yaml}")
-        with settings_yaml.open(
-            "rb",
-        ) as file:
-            import yaml
-
-            data = yaml.safe_load(file.read().decode(encoding="utf-8", errors="strict"))
-            return create_graphrag_config(data, root)
-
-    settings_json = (
-        Path(config)
-        if config and Path(config).suffix == ".json"
-        else _root / "settings.json"
-    )
-    if settings_json.exists():
-        logger.info(f"Reading settings from {settings_json}")
-        with settings_json.open("rb") as file:
-            import json
-
-            data = json.loads(file.read().decode(encoding="utf-8", errors="strict"))
-            return create_graphrag_config(data, root)
-
-    logger.info("Reading settings from environment variables")
-    return create_graphrag_config(root_dir=root)
-
-async def setup_llm_and_embedder():
+async def setup_llm_and_embedder(parameters):
     """
     设置语言模型（LLM）和嵌入模型
     """
     logger.info("正在设置LLM和嵌入器")
-    parameters = _read_config_parameters('./indexing', None)
 
     # 获取API密钥和基础URL
     api_key = os.environ.get("GRAPHRAG_API_KEY", parameters.llm.api_key)
@@ -329,10 +288,10 @@ def format_response(response):
 
     return '\n\n'.join(formatted_paragraphs)
 
-async def init(resume: str):
+async def init(resume: str, settings):
     try:
         logger.info("正在初始化搜索引擎和问题生成器...")
-        llm, token_encoder, text_embedder = await setup_llm_and_embedder()
+        llm, token_encoder, text_embedder = await setup_llm_and_embedder(settings)
         entities, relationships, reports, text_units, description_embedding_store, covariates = await load_context(f"./indexing/output/{resume}")
         local_search_engine, global_search_engine, local_context_builder, local_llm_params, local_context_params = await setup_search_engines(
             llm, token_encoder, text_embedder, entities, relationships, reports, text_units,
@@ -352,8 +311,8 @@ async def init(resume: str):
         logger.error(f"初始化过程中出错: {str(e)}")
         raise
 
-async def query(request: ChatCompletionRequest):
-    local_search_engine, global_search_engine, question_generator = await init(request.resume)
+async def query(request: ChatCompletionRequest, settings):
+    local_search_engine, global_search_engine, question_generator = await init(request.resume, settings)
 
     if not local_search_engine or not global_search_engine:
         logger.error("搜索引擎未初始化")
@@ -383,7 +342,7 @@ async def query(request: ChatCompletionRequest):
                     chunk = {
                         "id": chunk_id,
                         "object": "chat.completion.chunk",
-                        "created": int(time.time()),
+                        "created": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time()))),
                         "model": request.model,
                         "choices": [
                             {
@@ -399,7 +358,7 @@ async def query(request: ChatCompletionRequest):
                 final_chunk = {
                     "id": chunk_id,
                     "object": "chat.completion.chunk",
-                    "created": int(time.time()),
+                    "created": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time()))),
                     "model": request.model,
                     "choices": [
                         {
