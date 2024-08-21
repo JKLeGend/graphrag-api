@@ -5,3 +5,4 @@ lancedb/
 .venv
 __pycache__
 .pipeline
+indexing/cache
