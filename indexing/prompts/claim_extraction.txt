@@ -1,0 +1,51 @@
+-目标活动-
+你是一位智能助手，帮助人类分析师分析文本文件中针对某些实体的声明。
+
+-目标-
+给定一个可能与此活动相关的文本文件、一个实体规范和一个声明描述，从文本中提取所有符合实体规范的实体和所有针对这些实体的声明。
+
+-步骤-
+1. 提取所有符合预定义实体规范的命名实体。实体规范可以是实体名称列表或实体类型列表。
+2. 对于步骤1中识别的每个实体，提取所有与该实体相关的声明。声明需要符合指定的声明描述，并且该实体应该是声明的主体。
+对于每个声明，提取以下信息：
+- 主体：声明的主体实体名称。主体实体是描述的声明中执行动作的实体。主体需要是步骤1中识别的命名实体之一。
+- 客体：声明的客体实体名称。客体实体是报告/处理或受到描述动作影响的实体。如果客体实体未知，使用 **NONE**。
+- 声明类型：声明的总体类别。用一个可以在多个文本输入中重复的名称，以便类似的声明共享同一个声明类型。
+- 声明状态：**TRUE**、**FALSE**或**SUSPECTED**。TRUE表示声明已确认，FALSE表示声明被发现是假的，SUSPECTED表示声明未验证。
+- 声明描述：详细描述解释声明背后的推理，包含所有相关证据和引用。
+- 声明日期：声明提出的时间段（开始日期，结束日期）。开始日期和结束日期都应采用ISO-8601格式。如果声明是在单一天提出的，请为开始日期和结束日期设置相同的日期。如果日期未知，请返回**NONE**。
+- 声明来源文本：列出原文中所有与声明相关的引用。
+
+将每个声明格式化为 (<subject_entity>{tuple_delimiter}<object_entity>{tuple_delimiter}<claim_type>{tuple_delimiter}<claim_status>{tuple_delimiter}<claim_start_date>{tuple_delimiter}<claim_end_date>{tuple_delimiter}<claim_description>{tuple_delimiter}<claim_source>)
+
+3. 使用**{record_delimiter}**作为列表分隔符，以单一列表形式返回步骤1和步骤2中识别的所有声明。
+
+4. 完成时，输出 {completion_delimiter}
+
+-示例-
+示例1：
+实体规范：organization
+声明描述：与实体相关
+文本: 根据2022/01/10的一篇文章，公司A在参与政府机构B发布的多个公开招标时被罚款因串标。该公司为人物C所拥有，并且该人在2015年涉嫌参与腐败活动。
+输出:
+
+(公司A{tuple_delimiter}政府机构B{tuple_delimiter}反竞争行为{tuple_delimiter}TRUE{tuple_delimiter}2022-01-10T00:00:00{tuple_delimiter}2022-01-10T00:00:00{tuple_delimiter}根据2022/01/10发布的一篇文章，公司 A 被发现参与反竞争行为，因为在政府机构 B 发布的多个公开招标中被罚款{tuple_delimiter}根据2022/01/10发布的一篇文章，公司A在参与政府机构B发布的多个公开招标时被罚款。)
+{completion_delimiter}
+
+示例2：
+实体规范：公司A, 人物C
+声明描述：与实体相关
+文本: 根据2022/01/10的一篇文章，公司A在参与政府机构B发布的多个公开招标时被罚款因串标。该公司为人物C所拥有，并且该人在2015年涉嫌参与腐败活动。
+输出:
+
+(公司A{tuple_delimiter}政府机构B{tuple_delimiter}反竞争行为{tuple_delimiter}TRUE{tuple_delimiter}2022-01-10T00:00:00{tuple_delimiter}2022-01-10T00:00:00{tuple_delimiter}根据2022/01/10发布的一篇文章，公司A被发现参与反竞争行为，因为在政府机构B发布的多个公开招标中被罚款{tuple_delimiter}根据2022/01/10发布的一篇文章，公司A在参与政府机构B发布的多个公开招标时被罚款。)
+{record_delimiter}
+(人物C{tuple_delimiter}NONE{tuple_delimiter}腐败{tuple_delimiter}SUSPECTED{tuple_delimiter}2015-01-01T00:00:00{tuple_delimiter}2015-12-30T00:00:00{tuple_delimiter}人物C在2015年涉嫌参与腐败活动{tuple_delimiter}该公司为人物C所拥有，并且该人在2015年涉嫌参与腐败活动)
+{completion_delimiter}
+
+-真实数据-
+使用以下输入进行回答。
+实体规范：{entity_specs}
+声明描述：{claim_description}
+文本：{input_text}
+输出：
