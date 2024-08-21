@@ -1,0 +1,7 @@
+.idea
+lancedb/
+.DS_Store
+*.log*
+.venv
+__pycache__
+.pipeline
