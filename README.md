@@ -87,3 +87,7 @@ Ensure that you have Python 3.8 or higher installed on your system:
 
 - Ensure that you have origin input files in `./indexing/input` directory.
 - Ensure that you have launched and configured llm service api, embeddings service api.
+
+## License
+
+[Apache-2.0 License](LICENSE)
